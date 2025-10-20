@@ -116,15 +116,7 @@ To deploy the fine-tuned model as an inference service:
    aws configure
    ```
 
-### 2. Build and push Docker image:
-   ```bash
-   docker build -t scimilarity-be .
-   aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.ap-south-1.amazonaws.com
-   docker tag scimilarity-be:latest $(aws sts get-caller-identity --query Account --output text).dkr.ecr.ap-south-1.amazonaws.com/scimilarity-be:latest
-   docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.ap-south-1.amazonaws.com/scimilarity-be:latest
-   ```
-   
-### 3. Deploy using CloudFormation:
+### 2. Deploy using CloudFormation:
    ```bash
    aws cloudformation deploy \
      --template-file cfn_template.yml \
