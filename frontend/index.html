@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Cell Expression JSON</title>
+</head>
+<body>
+    <h2>Upload JSON file with gene expression</h2>
+    <input type="file" id="fileInput" accept=".json">
+    <button onclick="predict()">Predict</button>
+    <button onclick="clearResult()">Clear Result</button>
+
+    <h3>Prediction Result:</h3>
+    <pre id="result">No prediction yet.</pre>
+
+    <script>
+        const BASE_URL = "http://localhost:8000";
+        async function predict() {
+            const fileInput = document.getElementById("fileInput");
+            if (!fileInput.files.length) {
+                alert("Please select a JSON file first!");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch(`${BASE_URL}/predict`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+                document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById("result").textContent = "Error: " + err;
+            }
+        }
+
+        function clearResult() {
+            document.getElementById("result").textContent = "No prediction yet.";
+        }
+    </script>
+</body>
+</html>
