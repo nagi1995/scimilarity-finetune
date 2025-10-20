@@ -10,37 +10,61 @@ https://github.com/user-attachments/assets/b3027f4a-355f-446a-bdf8-7352dc2ab24f
 
 ---
 
-## 1. Downloading the Dataset
+## Project Structure
+```
+scimilarity-finetune/
+├── app/                    # FastAPI backend application
+│   ├── model/             # Model wrapper
+│   └── main.py           # API endpoints
+├── artifacts/             # Model artifacts and preprocessing objects
+├── data/                 # Dataset storage
+│   ├── raw/             # Raw input data
+│   ├── processed/       # Processed datasets
+│   └── json_samples/    # Example JSON inputs
+├── frontend/            # Web interface
+├── notebooks/          # Jupyter notebooks for analysis
+├── weights/           # Model weights and LoRA adapters
+└── cfn_template.yml   # AWS CloudFormation template
+└── Dockerfile         # Dockerfile
+```
 
-Dataset can be downloaded from [here](https://cellxgene.cziscience.com/collections/433700dc-e8a5-48b0-b5cd-beb22f3f88fe)
 
-## 2. Data Preprocessing
+---
+## 🚀 Getting Started
 
-- Clone this repository:
+### 1. Environment Setup
 
+1. Clone this repository:
    ```bash
    git clone https://github.com/nagi1995/scimilarity-finetune.git
    cd scimilarity-finetune
    ```
-- Install the required dependencies:
 
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-Before fine-tuning, preprocess the dataset to match the input requirements of the SCimilarity model. This typically involves:
+### 2. Data Preparation
 
-- Normalizing gene expression values.
-- Ensuring gene identifiers are consistent with those used in the pre-trained SCimilarity model.
-- Structuring the data in a format compatible with the model's input pipeline.
-- [03_Preprocessing_and_Dataset_Preparation](notebooks/03_Preprocessing_and_Dataset_Preparation.ipynb) demonstrates the preprocessing steps
+1. Download the dataset from [CellXGene](https://cellxgene.cziscience.com/collections/433700dc-e8a5-48b0-b5cd-beb22f3f88fe)
+2. Place the downloaded data in `data/raw/`
+3. Follow preprocessing notebooks:
+   - [01_Data_Exploration](notebooks/01_data_exploration.ipynb)
+   - [02_Marker_Analysis](notebooks/02_marker_analysis.ipynb)
+   - [03_Preprocessing_and_Dataset_Preparation](notebooks/03_Preprocessing_and_Dataset_Preparation.ipynb)
+### 3. Model Training
 
+Run the LoRA fine-tuning notebook:
+- [04_LoRA_Training](notebooks/04_LoRA_training.ipynb)
 
-## 3. LoRA fine tuning
+### 4. Evaluation
 
-- [04_LoRA_training](notebooks/04_LoRA_training.ipynb) demonstrates the LoRA fine tuning steps involved
+Compare model performance:
+- [05_Baseline_Evaluation](notebooks/05_Baseline_Evaluation.ipynb)
+- [06_LoRA_Evaluation](notebooks/06_LoRA_Evaluation.ipynb)
 
-## 4. Model Evaluation
+## 📈 Performance
 
 | model | accuracy | f1 score |
 |----------|----------|----------|
@@ -49,7 +73,7 @@ Before fine-tuning, preprocess the dataset to match the input requirements of th
 
 ---
 
-## Inference Service
+## Inference Service (Locally)
 
 To deploy the fine-tuned model as an inference service:
 
@@ -73,10 +97,45 @@ To deploy the fine-tuned model as an inference service:
 1. Edit `frontend/index.html` → set:
 
    ```js
-   const BASE_URL = "http://localhost:8000";
+   const BASE_URL = "http://<backend-host>:8000";
    ```
 2. Open the HTML file in a browser.
 3. Upload the json file with gene expression to get the `cell_type` along with `confidence`.
+
+---
+
+## 🌩️ AWS Deployment
+
+### Prerequisites
+- AWS CLI configured
+- An ECR repository with your backend image pushed (latest tag)
+- Existing VPC and subnets
+
+### 1. Install AWS CLI and configure credentials:
+   ```bash
+   aws configure
+   ```
+
+### 2. Build and push Docker image:
+   ```bash
+   docker build -t scimilarity-be .
+   aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.ap-south-1.amazonaws.com
+   docker tag scimilarity-be:latest $(aws sts get-caller-identity --query Account --output text).dkr.ecr.ap-south-1.amazonaws.com/scimilarity-be:latest
+   docker push $(aws sts get-caller-identity --query Account --output text).dkr.ecr.ap-south-1.amazonaws.com/scimilarity-be:latest
+   ```
+   
+### 3. Deploy using CloudFormation:
+   ```bash
+   aws cloudformation deploy \
+     --template-file cfn_template.yml \
+     --stack-name scimilarity-stack \
+     --capabilities CAPABILITY_NAMED_IAM \
+     --parameter-overrides \
+       MyIp=<your-ip-address>/32 \
+       SubnetIds='<subnet-ids>' \
+       EcrRepoName=scimilarity-be \
+       ContainerPort=8000
+   ```
 
 ---
 
